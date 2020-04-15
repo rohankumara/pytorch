@@ -34,6 +34,17 @@ white_list = [
     ('quantized::batch_norm', datetime.date(2020, 4, 20)),
     ('aten::sizes', datetime.date(2020, 4, 30)),
     ('aten::strides', datetime.date(2020, 4, 30)),
+    ('quantized::conv_prepack', datetime.date(2020, 5, 1)),
+    ('quantized::conv_unpack', datetime.date(2020, 5, 1)),
+    ('quantized::conv', datetime.date(2020, 5, 1)),
+    ('quantized::conv2d_prepack', datetime.date(2020, 5, 1)),
+    ('quantized::conv2d_unpack', datetime.date(2020, 5, 1)),
+    ('quantized::conv2d', datetime.date(2020, 5, 1)),
+    ('quantized::conv2d_relu', datetime.date(2020, 5, 1)),
+    ('quantized::conv3d_prepack', datetime.date(2020, 5, 1)),
+    ('quantized::conv3d_unpack', datetime.date(2020, 5, 1)),
+    ('quantized::conv3d', datetime.date(2020, 5, 1)),
+    ('quantized::conv3d_relu', datetime.date(2020, 5, 1)),
 ]
 
 
