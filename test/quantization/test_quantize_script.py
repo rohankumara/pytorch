@@ -1454,6 +1454,7 @@ class TestQuantizeScriptPTSQOps(JitTestCase):
                 self.dropout = torch.nn.Dropout()
                 self.avgpool = torch.nn.AvgPool2d(3)
                 self.conv = torch.nn.Conv2d(3, 3, 3)
+                self.sigmoid = torch.nn.Sigmoid()
 
             def forward(self, x):
                 x = self.conv(x)
@@ -1464,7 +1465,9 @@ class TestQuantizeScriptPTSQOps(JitTestCase):
                 x = torch.max(x)
                 x = torch.min(x)
                 x = torch.mean(x)
+                x = torch.sigmoid(x)
                 x = x.reshape([-1])
+                x = self.sigmoid(x)
                 x = x.view(-1)
                 x = x.transpose(1, 2)
                 x = x.contiguous()
@@ -1476,6 +1479,7 @@ class TestQuantizeScriptPTSQOps(JitTestCase):
                 x = F.upsample(x, (32, 32))
                 x = F.upsample_bilinear(x, (32, 32))
                 x = F.upsample_nearest(x, (32, 32))
+                x = F.sigmoid(x)
                 x = x.permute(0, 2, 3, 1)
                 x = torch.repeat_interleave(x, 3, 1)
                 x = self.conv(x)
