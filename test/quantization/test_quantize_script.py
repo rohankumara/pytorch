@@ -1163,9 +1163,9 @@ class TestQuantizeScriptPTSQOps(JitTestCase):
     """ Test graph mode post training static quantization works
     for individual ops end to end.
     """
-    def _test_op_impl(self, SingleOpModule, data, quantized_op):
+    def _test_op_impl(self, SingleOpModule, data, quantized_op, **kwargs):
         qconfig_dict = {'': get_default_qconfig('fbgemm')}
-        model = torch.jit.script(SingleOpModule()).eval()
+        model = torch.jit.script(SingleOpModule(**kwargs)).eval()
         model = quantize_script(model, qconfig_dict, _test_only_eval_fn, [data], inplace=False)
         FileCheck().check(quantized_op) \
                    .run(model.graph)
@@ -1394,7 +1394,7 @@ class TestQuantizeScriptPTSQOps(JitTestCase):
         class M(torch.nn.Module):
             def __init__(self):
                 super(M, self).__init__()
-                self.bn = torch.nn.BatchNorm2d(3).to('cpu', torch.float)
+                self.bn = torch.nn.BatchNorm2d(3).to(torch.float)
 
             def forward(self, x):
                 return self.bn(x)
@@ -1404,6 +1404,42 @@ class TestQuantizeScriptPTSQOps(JitTestCase):
 
         FileCheck().check_not("aten::batch_norm") \
                    .run(model.graph)
+
+    def test_qbatch_norm_relu(self):
+        class BNRelu(torch.nn.Module):
+            def __init__(self, inplace):
+                super(BNRelu, self).__init__()
+                self.bn = torch.nn.BatchNorm2d(3).to(torch.float)
+                self.relu = torch.nn.ReLU(inplace=inplace)
+
+            def forward(self, x):
+                return self.relu(self.bn(x))
+
+        # Note Fusion for functional Relu with inplace argument isn't currently supported in fusion patterns.
+        class BNFuncRelu(torch.nn.Module):
+            def __init__(self, inplace):
+                super(BNFuncRelu, self).__init__()
+                self.bn = torch.nn.BatchNorm2d(3).to(torch.float)
+
+            def forward(self, x):
+                return F.relu(self.bn(x), False)
+
+        class BNFuncInplaceRelu(torch.nn.Module):
+            def __init__(self, inplace):
+                super(BNFuncInplaceRelu, self).__init__()
+                self.bn = torch.nn.BatchNorm2d(3).to(torch.float)
+
+            def forward(self, x):
+                return F.relu(self.bn(x), True)
+
+        data = [(torch.rand((1, 3, 10, 10), dtype=torch.float), torch.randint(0, 1, (1,), dtype=torch.long)) for _ in range(2)]
+        for Model in [BNRelu, BNFuncRelu, BNFuncInplaceRelu]:
+            for inplace in [True, False]:
+                model = self._test_op_impl(Model, data, "quantized::batch_norm2d_relu", inplace=inplace)
+                FileCheck().check_not("aten::batch_norm") \
+                           .check_not("aten::relu") \
+                           .check_not("aten::relu_") \
+                           .run(model.graph)
 
 
     def test_swap_dequantize_all_ops(self):
